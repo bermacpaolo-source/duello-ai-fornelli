@@ -232,7 +232,7 @@ function LocalStore(){
     addUser(name){ const id = 'u_' + rid(); db.users[id] = {id, name}; meId = id; LS.set('df_me', id); save(); },
     isPremium(){ return !!db.users[meId]?.premium; },
     async setPremium(info){ db.users[meId].premium = true; db.users[meId].purchase = info || {}; save(); },
-    reset(){ db = seed(); meId = 'u_paolo'; LS.set('df_me', meId); save(); },
+    async deleteAccount(){ const me = meId; Object.values(db.sfide).forEach(s => { if(!s.participants.includes(me)) return; if(s.participants.length <= 1){ delete db.sfide[s.id]; delete db.opinioni[s.id + '|' + me]; return; } s.participants = s.participants.filter(u => u !== me); delete s.people[me]; if(s.dishes) delete s.dishes[me]; if(s.turns) delete s.turns[me]; if(s.createdBy === me) s.createdBy = s.participants[0]; Object.values(s.dishes || {}).forEach(d => { if(d.approvals) delete d.approvals[me]; if(d.changes) delete d.changes[me]; }); Object.values(s.turns || {}).forEach(t => { if(t.votes) delete t.votes[me]; if(t.confirmations) delete t.confirmations[me]; }); }); delete db.users[me]; if(!Object.keys(db.users).length){ db = seed(); } meId = Object.keys(db.users)[0]; LS.set('df_me', meId); save(); }, reset(){ db = seed(); meId = 'u_paolo'; LS.set('df_me', meId); save(); },
     subscribe(f){ ls.add(f); },
     mine(){ return Object.values(db.sfide).filter(s => s.participants.includes(meId)).sort((a,b) => b.createdAt - a.createdAt); },
     get(id){ return db.sfide[id] || null; },
@@ -277,7 +277,7 @@ async function FireStore(cfg){
       const p = new AU.GoogleAuthProvider();
       try{ await AU.signInWithPopup(auth, p); }catch(e){ if(e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') await AU.signInWithRedirect(auth, p); else throw e; }
     },
-    async logout(){ await AU.signOut(auth); },
+    async logout(){ await AU.signOut(auth); }, async deleteAccount(){ const uid = user.uid; const list = Object.values(cache).filter(s => s.participants.includes(uid)); for(const s of list){ const ref = F.doc(db, 'sfide', s.id); if(s.participants.length <= 1){ await F.deleteDoc(ref); delete cache[s.id]; continue; } const rest = s.participants.filter(u => u !== uid); const up = {participants: F.arrayRemove(uid), ['people.' + uid]: F.deleteField(), ['dishes.' + uid]: F.deleteField(), ['turns.' + uid]: F.deleteField()}; if(s.createdBy === uid) up.createdBy = rest[0]; rest.forEach(o => { const d = s.dishes?.[o] || {}, t = s.turns?.[o] || {}; if(d.approvals?.[uid]) up[`dishes.${o}.approvals.${uid}`] = F.deleteField(); if(d.changes?.[uid]) up[`dishes.${o}.changes.${uid}`] = F.deleteField(); if(t.votes?.[uid]) up[`turns.${o}.votes.${uid}`] = F.deleteField(); if(t.confirmations?.[uid]) up[`turns.${o}.confirmations.${uid}`] = F.deleteField(); }); await F.updateDoc(ref, up); delete cache[s.id]; } try{ await F.deleteDoc(F.doc(db, 'utenti', uid)); }catch(e){ console.warn(e); } try{ await user.delete(); } catch(e){ if(e.code !== 'auth/requires-recent-login') throw e; await AU.reauthenticateWithPopup(user, new AU.GoogleAuthProvider()); await auth.currentUser.delete(); } },
     isPremium(){ return premium; },
     async setPremium(info){ await F.setDoc(F.doc(db, 'utenti', user.uid), {premium: true, purchase: info || {}, at: Date.now()}, {merge: true}); premium = true; emit(); },
     async ensureGuest(){ if(!user) await AU.signInAnonymously(auth); },
@@ -419,7 +419,7 @@ function topBar(){
     right = `<div class="who"><span class="label" style="font-size:10px">Stai giocando come</span>
       <select id="who" aria-label="Cambia utente di prova">${store.users().map(u => `<option value="${esc(u.id)}" ${u.id === me.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></div>`;
   } else if(me){
-    right = `<div class="who"><b style="font-size:14px">${esc(me.name)}</b><button class="btn-link muted small" data-act="logout" style="background:none;border:0;padding:0;cursor:pointer;color:var(--muted)">Esci</button></div>`;
+    right = `<div class="who"><b style="font-size:14px">${esc(me.name)}</b><button class="btn-link muted small" data-act="account" style="background:none;border:0;padding:0;cursor:pointer;color:var(--muted)">Account</button></div>`;
   }
   return `<header class="top"><button class="brand" data-act="home" aria-label="Torna alle sfide">${logo}<div><b>Duello</b><span>ai Fornelli</span></div></button>${right}</header>`;
 }
@@ -454,7 +454,7 @@ function viewHome(){
     <div class="stack" style="margin-top:12px">
       <form class="row" data-form="adduser" style="flex-wrap:nowrap"><input type="text" id="newuser" name="name" placeholder="Nome nuovo sfidante" required><button class="btn btn-ghost" type="submit">Aggiungi</button></form>
       <p class="small muted">Aggiungi un utente finto per provare l'invito con il codice. Ogni utente nuovo ha una sfida gratis.</p>
-      <button class="btn btn-warn btn-sm" data-act="reset" type="button">${ui.confirmReset ? 'Tocca ancora per cancellare tutto' : 'Ripristina i dati di esempio'}</button>
+      <button class="btn btn-ghost btn-sm" data-act="account" type="button">Account ed eliminazione</button> <button class="btn btn-warn btn-sm" data-act="reset" type="button">${ui.confirmReset ? 'Tocca ancora per cancellare tutto' : 'Ripristina i dati di esempio'}</button>
     </div></details>` : ''}`;
 }
 
@@ -488,7 +488,7 @@ function viewPremium(){
   </div>`;
 }
 
-function viewNew(){
+function viewAccount(){ const me = store.me(); const demo = store.mode === 'demo'; const n = store.mine().length; return `<div class="stack-lg"> <button class="btn btn-ghost btn-sm" data-act="home" style="align-self:flex-start">← Indietro</button> <div class="stack"><div class="label">Il tuo account</div><h1>${esc(me.full || me.name)}</h1>${me.email ? `<p class="muted">${esc(me.email)}</p>` : ''}</div> <div class="card stack"> <div class="row between"><span>Sfide</span><b>${n}</b></div> <div class="row between"><span>Premium</span><b>${store.isPremium() ? 'Attivo' : 'Non attivo'}</b></div> </div> ${ui.flash ? `<div class="flash" role="status">${esc(ui.flash)}</div>` : ''} ${demo ? '' : `<button class="btn btn-ghost btn-block" data-act="logout">Esci</button>`} <section class="card stack" style="border-color:var(--bad)"> <h3 style="color:var(--bad)">Elimina account</h3> <p class="small">Cancelliamo il tuo profilo, i tuoi piatti, ricette proposte, date, voti dati e ricevuti, foto e lo stato Premium. Esci da tutte le sfide; quelle in cui eri l'unico sfidante vengono cancellate. L'operazione non si può annullare.</p> <p class="small muted">Se hai acquistato Premium, l'acquisto resta legato al tuo account Google Play: con un nuovo account potrai usare "Ripristina acquisto".</p> ${ui.confirmDelete ? `<form class="stack" data-form="delete-account"> <label class="f">Per confermare scrivi ELIMINA<input type="text" id="del-confirm" name="confirm" autocomplete="off" required></label> <div class="row"><button class="btn btn-warn" type="submit" style="color:var(--bad);border-color:var(--bad)" ${ui.busy ? 'disabled' : ''}>${ui.busy ? 'Eliminazione…' : 'Elimina definitivamente'}</button><button class="btn btn-ghost" type="button" data-act="cancel-delete">Annulla</button></div> </form>` : `<button class="btn btn-warn" data-act="start-delete" style="align-self:flex-start;color:var(--bad);border-color:var(--bad)">Elimina il mio account</button>`} </section> </div>`; }  function viewNew(){
   return `<div class="stack-lg">
     <button class="btn btn-ghost btn-sm" data-act="home" style="align-self:flex-start">← Indietro</button>
     <h1>Nuova sfida</h1>
@@ -793,7 +793,7 @@ function render(){
   let html;
   if(ui.route === 'amici' && ui.friendOnly){ html = viewFriends(); app.innerHTML = `<header class="top"><div class="brand">${logo}<div><b>Duello</b><span>ai Fornelli</span></div></div></header>` + html; return; }
   if(!store.me()) html = viewLogin();
-  else html = ({home: viewHome, new: viewNew, premium: viewPremium, detail: viewDetail, invite: viewInvite, amici: viewFriends})[ui.route]();
+  else html = ({home: viewHome, new: viewNew, premium: viewPremium, account: viewAccount, detail: viewDetail, invite: viewInvite, amici: viewFriends})[ui.route]();
   app.innerHTML = (store.me() ? topBar() : '') + html;
   window.scrollTo(0, y);
 }
@@ -825,7 +825,7 @@ document.addEventListener('click', e => {
       case 'tab': ui.tab = el.dataset.tab; ui.open = {}; ui.flash = null; render(); break;
       case 'toggle': ui.open[el.dataset.key] = !ui.open[el.dataset.key]; render(); break;
       case 'login': await store.login(); break;
-      case 'logout': await store.logout(); go('home'); break;
+      case 'logout': await store.logout(); go('home'); break; case 'account': go('account', {confirmDelete:false}); break; case 'start-delete': ui.confirmDelete = true; ui.flash = null; render(); break; case 'cancel-delete': ui.confirmDelete = false; render(); break;
       case 'reset': if(ui.confirmReset){ ui.confirmReset = false; store.reset(); go('home', {flash:'Dati di esempio ripristinati.'}); } else { ui.confirmReset = true; render(); } break;
       case 'copy': {
         const txt = el.dataset.text;
@@ -877,7 +877,7 @@ document.addEventListener('submit', e => {
       case 'recipe': await store.patch(s.id, {[`dishes.${u}.recipe`]: {ingredients: fd.ingredients.trim(), steps: fd.steps.trim(), freedom: fd.freedom.trim(), by: me.id}}); ui.open['rec-' + u] = false; flash('Ricetta guida salvata.'); break;
       case 'turn': await store.patch(s.id, {[`turns.${u}.date`]: fd.date, [`turns.${u}.time`]: fd.time, [`turns.${u}.meal`]: fd.meal, [`turns.${u}.place`]: fd.place.trim(), [`turns.${u}.proposedBy`]: me.id, [`turns.${u}.confirmations`]: {[me.id]: true}}); ui.open['turn-' + u] = false; flash('Data proposta. Aspetta la conferma degli altri.'); break;
       case 'vote': await store.patch(s.id, {[`turns.${u}.votes.${me.id}`]: {gusto: +fd.gusto, pres: +fd.pres, fed: +fd.fed, note: (fd.note || '').trim()}}); flash(`Voto inviato a ${nameOf(s, u)}.`); break;
-      case 'opinion': {
+      case 'delete-account': { if((fd.confirm || '').trim().toUpperCase() !== 'ELIMINA'){ flash('Scrivi ELIMINA per confermare.'); return; } ui.busy = true; render(); try{ await store.deleteAccount(); ui.busy = false; ui.confirmDelete = false; go('home', {flash:'Account eliminato. I tuoi dati sono stati cancellati.'}); } catch(err){ ui.busy = false; flash('Eliminazione non riuscita: ' + (err.message || err) + '. Riprova o scrivi a bermac.paolo@gmail.com.'); } break; } case 'opinion': {
         if(!fd.stars){ ui.flash = null; const h = f.querySelector('h3'); h.textContent = 'Scegli da 1 a 5 stelle'; h.style.color = 'var(--bad)'; return; }
         await store.addOpinion(ui.id, ui.chef, {name: fd.name.trim(), stars: +fd.stars, comment: (fd.comment || '').trim(), at: Date.now()});
         ui.friendSent = true; ui.stars = 0; render(); break; }
@@ -898,7 +898,7 @@ document.addEventListener('submit', e => {
   Billing.loadPrice();
   if(q.get('invito')){ ui.pendingCode = q.get('invito').toUpperCase(); SS.set('df_invite', ui.pendingCode); }
   else ui.pendingCode = SS.get('df_invite');
-  if(q.get('piatto') && q.get('chef')){
+  if(q.has('account')) ui.route = 'account'; if(q.get('piatto') && q.get('chef')){
     Object.assign(ui, {route:'amici', id: q.get('piatto'), chef: q.get('chef'), friendOnly: true});
     if(store.mode === 'online'){ try{ await store.ensureGuest(); }catch(e){} store.watch(ui.id); }
   }
