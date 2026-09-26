@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1E6A44">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="firebase-config.js"></script>
+<title>Duello ai Fornelli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@600&display=swap">
+<style>
+:root{
+  --bg:#F2F5F1; --surface:#FFFFFF; --surface2:#E8EEE7; --ink:#18221D; --muted:#56665D; --line:#D3DCD5;
+  --accent:#1E6A44; --accent-ink:#FFFFFF; --accent-soft:#DCEDE2;
+  --ok:#2F7D4F; --warn:#A8601A; --warn-soft:#F6E7D6; --bad:#B0382B;
+  --p1:#1E6A44; --p2:#C4502A; --p3:#A77A0E; --p4:#74468A; --p5:#2C6788;
+  --shadow:0 1px 2px rgba(20,40,30,.06),0 6px 18px rgba(20,40,30,.06);
+  --r:14px;
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0E1411; --surface:#16201A; --surface2:#1E2A23; --ink:#E5EEE8; --muted:#98AAA0; --line:#2B3A31;
+    --accent:#62C08C; --accent-ink:#0E1411; --accent-soft:#1F3A2B;
+    --ok:#62C08C; --warn:#E3A35E; --warn-soft:#3A2C1C; --bad:#F07C6C;
+    --p1:#62C08C; --p2:#F08A62; --p3:#E2B84A; --p4:#C08FDA; --p5:#6FB3DA;
+    --shadow:0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0E1411; --surface:#16201A; --surface2:#1E2A23; --ink:#E5EEE8; --muted:#98AAA0; --line:#2B3A31;
+  --accent:#62C08C; --accent-ink:#0E1411; --accent-soft:#1F3A2B;
+  --ok:#62C08C; --warn:#E3A35E; --warn-soft:#3A2C1C; --bad:#F07C6C;
+  --p1:#62C08C; --p2:#F08A62; --p3:#E2B84A; --p4:#C08FDA; --p5:#6FB3DA;
+  --shadow:0 1px 2px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font:15px/1.5 var(--body);-webkit-font-smoothing:antialiased}
+#app{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:0 48px}
+h1,h2,h3{font-family:var(--display);line-height:1.15;text-wrap:balance;margin:0}
+h1{font-size:28px;font-weight:800;letter-spacing:-.01em}
+h2{font-size:21px;font-weight:800}
+h3{font-size:17px;font-weight:600}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.label{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stack{display:flex;flex-direction:column;gap:12px}
+.stack-lg{display:flex;flex-direction:column;gap:22px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:12px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:9px;background:none;border:0;padding:0;color:var(--ink);cursor:pointer;text-align:left}
+.brand svg{width:34px;height:34px;flex:none}
+.brand b{display:block;font-family:var(--display);font-weight:800;font-size:18px;line-height:1}
+.brand span{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:3px}
+.who{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:0}
+.who select{font:600 14px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 10px;max-width:160px}
+.demo-bar{background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:16px}
+.demo-bar b{color:var(--warn)}
+
+/* buttons & inputs */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font:600 15px var(--body);border-radius:11px;padding:11px 16px;border:1px solid transparent;cursor:pointer;text-decoration:none;min-height:44px}
+.btn-primary{background:var(--accent);color:var(--accent-ink)}
+.btn-ghost{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.btn-soft{background:var(--accent-soft);color:var(--accent)}
+.btn-warn{background:var(--surface);color:var(--warn);border-color:var(--warn)}
+.btn-sm{font-size:13.5px;padding:7px 12px;min-height:36px;border-radius:9px}
+.btn-block{width:100%}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,.tab:focus-visible,.card-link:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600;color:var(--muted)}
+input[type=text],input[type=date],input[type=time],textarea,select.in{font:16px var(--body);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+textarea{min-height:84px;resize:vertical;line-height:1.45}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:380px){.grid2{grid-template-columns:1fr}}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;box-shadow:var(--shadow)}
+.card-link{display:block;width:100%;text-align:left;color:inherit;cursor:pointer;font:inherit}
+.card-link:hover{border-color:var(--accent)}
+.sub{background:var(--surface2);border-radius:11px;padding:12px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px;background:var(--surface2);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--accent-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.me{background:var(--accent);color:var(--accent-ink)}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
+.chef{display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.vs{font-family:var(--display);font-weight:800;color:var(--muted);font-size:13px;letter-spacing:.06em}
+.empty{border:1.5px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted)}
+.flash{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:10px 12px;font-weight:600;font-size:14px}
+
+/* hero on home */
+.hero{padding-block:4px 6px}
+.hero p{margin-top:6px;color:var(--muted);max-width:44ch}
+
+/* detail */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-block:14px 6px}
+.step{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;color:var(--muted);text-align:center}
+.step i{height:5px;border-radius:3px;background:var(--line)}
+.step.done i{background:var(--accent);opacity:.45}
+.step.now i{background:var(--accent)}
+.step.now{color:var(--accent)}
+.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;background:var(--surface2);border-radius:12px;padding:4px;margin-block:12px 16px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1 0 auto;border:0;background:none;font:600 13.5px var(--body);color:var(--muted);padding:8px 6px;border-radius:9px;cursor:pointer;position:relative}
+.tab.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.tab .badge{position:absolute;top:5px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--p2)}
+.code{font-family:var(--mono);font-size:26px;letter-spacing:.08em;color:var(--ink)}
+.dish-name{font-family:var(--display);font-size:20px;font-weight:800;line-height:1.2}
+.approvals{display:flex;flex-wrap:wrap;gap:6px}
+.recipe{white-space:pre-wrap;font-size:14px}
+.recipe-grid{display:grid;gap:10px}
+.photo{width:100%;border-radius:12px;display:block;aspect-ratio:4/3;object-fit:cover;background:var(--surface2)}
+.nophoto{aspect-ratio:4/3;border-radius:12px;background:repeating-linear-gradient(135deg,var(--surface2) 0 12px,transparent 12px 24px);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;font-weight:600;text-align:center;padding:12px}
+.when{font-family:var(--display);font-weight:800;font-size:18px}
+.range{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+.range input{width:100%;accent-color:var(--accent)}
+.range output{font:600 18px var(--mono);min-width:2ch;text-align:right;font-variant-numeric:tabular-nums}
+.score{font:600 30px var(--mono);font-variant-numeric:tabular-nums;line-height:1}
+.bar{height:8px;border-radius:4px;background:var(--surface2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:4px}
+.crit{display:grid;grid-template-columns:92px 1fr 34px;gap:8px;align-items:center;font-size:13px}
+.crit span:last-child{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.winner{background:var(--accent);color:var(--accent-ink);border-radius:var(--r);padding:18px}
+.winner .label{color:inherit;opacity:.8}
+.stars{display:flex;gap:4px}
+.stars input{position:absolute;opacity:0;width:1px;height:1px}
+.stars label{font-size:32px;line-height:1;color:var(--line);cursor:pointer;padding:2px}
+.stars label.lit{color:var(--p3)}
+.opinion{border-top:1px solid var(--line);padding-top:10px}
+.stars-s{color:var(--p3);letter-spacing:1px}
+details.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px}
+details.panel summary{cursor:pointer;font-weight:700}
+.file{position:relative;overflow:hidden}
+.file input{position:absolute;inset:0;opacity:0;cursor:pointer}
+@media (prefers-reduced-motion:no-preference){.card,.btn{transition:border-color .15s,background .15s,transform .1s}.btn:active{transform:scale(.98)}}
+</style>
+</head>
+<body>
+
+
+<div id="app"></div>
+
+<script>
+/* ============ Duello ai Fornelli ============ */
+const APP_URL = (window.APP_URL || 'https://bermacpaolo-source.github.io/duello-ai-fornelli/');
+const DEL = {__del:true};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rid = () => Math.random().toString(36).slice(2, 9);
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+};
+const SS = {
+  get(k){ try{ return sessionStorage.getItem(k); }catch(e){ return null; } },
+  set(k, v){ try{ v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); }catch(e){} }
+};
+const pad = n => String(n).padStart(2, '0');
+const isoDay = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const addDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return isoDay(d); };
+const today = () => isoDay(new Date());
+const MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+const GIORNI = ['dom','lun','mar','mer','gio','ven','sab'];
+function fmtDate(iso){ if(!iso) return ''; const d = new Date(iso + 'T12:00'); return `${GIORNI[d.getDay()]} ${d.getDate()} ${MESI[d.getMonth()]} ${d.getFullYear()}`; }
+const fmtNum = n => n == null ? '–' : n.toFixed(1).replace('.', ',');
+function newCode(){ const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for(let i=0;i<5;i++) s += a[Math.floor(Math.random()*a.length)]; return 'DF-' + s; }
+function setPath(obj, path, val){
+  const ks = path.split('.'); let o = obj;
+  for(let i=0;i<ks.length-1;i++){ if(typeof o[ks[i]] !== 'object' || o[ks[i]] === null) o[ks[i]] = {}; o = o[ks[i]]; }
+  const last = ks[ks.length-1];
+  if(val === DEL) delete o[last]; else o[last] = val;
+}
+
+/* ---------- demo store (tutto sul telefono) ---------- */
+function seed(){
+  const now = Date.now();
+  const users = { u_paolo:{id:'u_paolo', name:'Paolo'}, u_marco:{id:'u_marco', name:'Marco'}, u_giulia:{id:'u_giulia', name:'Giulia'} };
+  const s1 = {
+    id:'s_risotti', title:'Sfida dei risotti', theme:'Risotto, ma con un ingrediente di stagione', createdBy:'u_paolo', createdAt: now - 12*864e5,
+    inviteCode:'DF-R7K2M', participants:['u_paolo','u_marco'], people:{u_paolo:{name:'Paolo'}, u_marco:{name:'Marco'}},
+    dishes:{
+      u_paolo:{name:'Risotto zucca e salvia croccante', desc:'Carnaroli mantecato con crema di zucca mantovana, salvia fritta e amaretto sbriciolato.', approvals:{u_marco:true},
+        recipe:{ingredients:'Riso Carnaroli 320 g\nZucca mantovana 500 g\nBrodo vegetale 1,2 l\nSalvia 12 foglie\nBurro, Grana Padano', steps:'Crema di zucca al forno. Tostatura a secco, sfumare col brodo. Unire la crema a metà cottura. Mantecare fuori dal fuoco.', freedom:'Guarnizione finale e tipo di formaggio a scelta dello chef.', by:'u_marco'}},
+      u_marco:{name:'Risotto allo zafferano con ossobuco', desc:'Milanese classico con midollo, ossobuco brasato a parte.', approvals:{u_paolo:true},
+        recipe:{ingredients:'Riso Carnaroli 320 g\nZafferano in pistilli 0,3 g\nOssobuco di vitello 2 pezzi\nMidollo, burro, cipolla bianca', steps:'Soffritto con midollo. Tostatura, vino bianco, brodo di carne. Zafferano in infusione a metà cottura. Ossobuco brasato 2 ore.', freedom:'Gremolada facoltativa. Libera la scelta del vino.', by:'u_paolo'}}
+    },
+    turns:{
+      u_marco:{date:addDays(-7), time:'20:00', meal:'cena', place:'Casa di Marco', proposedBy:'u_marco', confirmations:{u_marco:true,u_paolo:true}, served:true,
+        votes:{u_paolo:{gusto:8, pres:7, fed:9, note:'Zafferano perfetto, ossobuco morbidissimo. Impiattamento migliorabile.'}}},
+      u_paolo:{date:addDays(7), time:'20:30', meal:'cena', place:'Casa di Paolo', proposedBy:'u_paolo', confirmations:{u_paolo:true,u_marco:true}, served:false, votes:{}}
+    }
+  };
+  const s2 = {
+    id:'s_pesce', title:'Primi di mare', theme:'Pasta con pesce fresco', createdBy:'u_marco', createdAt: now - 2*864e5,
+    inviteCode:'DF-P4XQ9', participants:['u_marco','u_giulia','u_paolo'], people:{u_marco:{name:'Marco'}, u_giulia:{name:'Giulia'}, u_paolo:{name:'Paolo'}},
+    dishes:{
+      u_marco:{name:'Spaghetti alle vongole veraci', desc:'In bianco, con bottarga grattugiata a crudo.', approvals:{u_giulia:true}},
+      u_giulia:{name:'Paccheri al ragù di polpo', desc:'Polpo cotto nel suo liquido, pomodorini datterini, olive taggiasche.', approvals:{u_marco:true}}
+    },
+    turns:{}
+  };
+  return { users, sfide:{[s1.id]:s1, [s2.id]:s2}, opinioni:{
+    's_risotti|u_marco':[
+      {name:'Laura', stars:5, comment:'Che colore! Voglio la ricetta.', at: now - 6*864e5},
+      {name:'Andrea', stars:4, comment:'Bello, ma il piatto è un po\' pieno.', at: now - 5*864e5}
+    ]}};
+}
+function LocalStore(){
+  let db = LS.get('df_db_v1', null) || seed();
+  let meId = LS.get('df_me', 'u_paolo');
+  if(!db.users[meId]) meId = Object.keys(db.users)[0];
+  const ls = new Set();
+  const save = () => { if(!LS.set('df_db_v1', db)) console.warn('Spazio locale pieno'); ls.forEach(f => f()); };
+  return {
+    mode:'demo',
+    me(){ return db.users[meId]; },
+    users(){ return Object.values(db.users); },
+    switchUser(id){ meId = id; LS.set('df_me', id); save(); },
+    addUser(name){ const id = 'u_' + rid(); db.users[id] = {id, name}; meId = id; LS.set('df_me', id); save(); },
+    isPremium(){ return !!db.users[meId]?.premium; },
+    async setPremium(info){ db.users[meId].premium = true; db.users[meId].purchase = info || {}; save(); },
+    reset(){ db = seed(); meId = 'u_paolo'; LS.set('df_me', meId); save(); },
+    subscribe(f){ ls.add(f); },
+    mine(){ return Object.values(db.sfide).filter(s => s.participants.includes(meId)).sort((a,b) => b.createdAt - a.createdAt); },
+    get(id){ return db.sfide[id] || null; },
+    watch(){},
+    async create(d){ const id = 's_' + rid(); db.sfide[id] = {...d, id}; save(); return id; },
+    async patch(id, up){ const s = db.sfide[id]; for(const [p, v] of Object.entries(up)) setPath(s, p, v); save(); },
+    async findByCode(code){ return Object.values(db.sfide).find(s => s.inviteCode === code) || null; },
+    async join(id){ const s = db.sfide[id], me = this.me(); if(!s.participants.includes(me.id)){ s.participants.push(me.id); s.people[me.id] = {name: me.name}; } save(); },
+    opinions(id, chef){ return (db.opinioni[id + '|' + chef] || []).slice().sort((a,b) => b.at - a.at); },
+    async addOpinion(id, chef, op){ (db.opinioni[id + '|' + chef] ||= []).push(op); save(); }
+  };
+}
+
+/* ---------- online store (Firebase) ---------- */
+async function FireStore(cfg){
+  const V = '10.12.2', B = `https://www.gstatic.com/firebasejs/${V}/`;
+  const [A, AU, F] = await Promise.all([import(B + 'firebase-app.js'), import(B + 'firebase-auth.js'), import(B + 'firebase-firestore.js')]);
+  const app = A.initializeApp(cfg), auth = AU.getAuth(app), db = F.getFirestore(app);
+  auth.languageCode = 'it';
+  let user = null; const cache = {}, ops = {}, ls = new Set(), watching = {};
+  let unMine = null, unUser = null, premium = false;
+  const emit = () => ls.forEach(f => f());
+  try{ await AU.getRedirectResult(auth); }catch(e){ console.warn(e); }
+  await new Promise(res => AU.onAuthStateChanged(auth, u => {
+    user = u;
+    if(unMine){ unMine(); unMine = null; }
+    if(unUser){ unUser(); unUser = null; } premium = false;
+    if(u && !u.isAnonymous){
+      unMine = F.onSnapshot(F.query(F.collection(db, 'sfide'), F.where('participants', 'array-contains', u.uid)), snap => {
+        snap.docChanges().forEach(ch => { if(ch.type === 'removed') delete cache[ch.doc.id]; else cache[ch.doc.id] = {id: ch.doc.id, ...ch.doc.data()}; });
+        emit();
+      }, e => console.error(e));
+      unUser = F.onSnapshot(F.doc(db, 'utenti', u.uid), d => { premium = !!(d.exists() && d.data().premium); emit(); }, e => console.error(e));
+    }
+    res(); emit();
+  }));
+  const map = up => { const o = {}; for(const [k, v] of Object.entries(up)) o[k] = v === DEL ? F.deleteField() : v; return o; };
+  return {
+    mode:'online',
+    me(){ return user && !user.isAnonymous ? {id: user.uid, name: (user.displayName || 'Chef').split(' ')[0], full: user.displayName, email: user.email} : null; },
+    async login(){
+      const p = new AU.GoogleAuthProvider();
+      try{ await AU.signInWithPopup(auth, p); }catch(e){ if(e.code === 'auth/popup-blocked' || e.code === 'auth/operation-not-supported-in-this-environment') await AU.signInWithRedirect(auth, p); else throw e; }
+    },
+    async logout(){ await AU.signOut(auth); },
+    isPremium(){ return premium; },
+    async setPremium(info){ await F.setDoc(F.doc(db, 'utenti', user.uid), {premium: true, purchase: info || {}, at: Date.now()}, {merge: true}); premium = true; emit(); },
+    async ensureGuest(){ if(!user) await AU.signInAnonymously(auth); },
+    subscribe(f){ ls.add(f); },
+    mine(){ const me = this.me(); return Object.values(cache).filter(s => me && s.participants.includes(me.id)).sort((a,b) => b.createdAt - a.createdAt); },
+    get(id){ return cache[id] || null; },
+    watch(id){
+      if(watching[id]) return; watching[id] = true;
+      F.onSnapshot(F.doc(db, 'sfide', id), d => { if(d.exists()) cache[id] = {id, ...d.data()}; emit(); }, e => console.error(e));
+      F.onSnapshot(F.collection(db, 'sfide', id, 'opinioni'), snap => { ops[id] = snap.docs.map(d => d.data()); emit(); }, e => console.error(e));
+    },
+    async create(d){ const r = await F.addDoc(F.collection(db, 'sfide'), d); return r.id; },
+    async patch(id, up){ await F.updateDoc(F.doc(db, 'sfide', id), map(up)); },
+    async findByCode(code){ const q = await F.getDocs(F.query(F.collection(db, 'sfide'), F.where('inviteCode', '==', code), F.limit(1))); if(q.empty) return null; const d = q.docs[0]; cache[d.id] = {id: d.id, ...d.data()}; return cache[d.id]; },
+    async join(id){ const me = this.me(); await F.updateDoc(F.doc(db, 'sfide', id), {participants: F.arrayUnion(me.id), ['people.' + me.id]: {name: me.name}}); this.watch(id); },
+    opinions(id, chef){ this.watch(id); return (ops[id] || []).filter(o => o.chef === chef).sort((a,b) => b.at - a.at); },
+    async addOpinion(id, chef, op){ await this.ensureGuest(); await F.addDoc(F.collection(db, 'sfide', id, 'opinioni'), {...op, chef}); }
+  };
+}
+
+/* ---------- logica della sfida ---------- */
+const COLORS = ['var(--p1)','var(--p2)','var(--p3)','var(--p4)','var(--p5)'];
+const colorOf = (s, u) => COLORS[Math.max(0, s.participants.indexOf(u)) % COLORS.length];
+const nameOf = (s, u) => (s.people?.[u]?.name) || 'Sfidante';
+const others = (s, u) => s.participants.filter(x => x !== u);
+const dishOk = (s, u) => { const d = s.dishes?.[u]; return !!(d && d.name && others(s, u).every(o => d.approvals?.[o])); };
+const turnOk = (s, u) => { const t = s.turns?.[u]; return !!(t && t.date && s.participants.every(o => t.confirmations?.[o])); };
+const turnVoted = (s, u) => { const t = s.turns?.[u]; return !!(t && t.served && others(s, u).every(o => t.votes?.[o])); };
+const STAGES = [['invito','Invito'],['piatti','Piatti'],['calendario','Date'],['duelli','Duelli'],['conclusa','Verdetto']];
+function stageOf(s){
+  const P = s.participants;
+  if(P.length < 2) return 'invito';
+  if(!P.every(u => dishOk(s, u))) return 'piatti';
+  if(!P.every(u => turnOk(s, u))) return 'calendario';
+  if(!P.every(u => turnVoted(s, u))) return 'duelli';
+  return 'conclusa';
+}
+function todos(s, me){
+  const t = [];
+  if(s.participants.length < 2) t.push({tab:'sfidanti', txt:'Invita almeno un avversario'});
+  const d = s.dishes || {};
+  if(!d[me]?.name) t.push({tab:'piatti', txt:'Proponi il tuo piatto'});
+  others(s, me).forEach(o => { if(d[o]?.name && !d[o].approvals?.[me] && !d[o].changes?.[me]) t.push({tab:'piatti', txt:`Approva il piatto di ${nameOf(s, o)}`}); });
+  if(d[me]?.changes && Object.keys(d[me].changes).length) t.push({tab:'piatti', txt:'Ti hanno chiesto una modifica al piatto'});
+  if(s.participants.length >= 2 && s.participants.every(u => dishOk(s, u))){
+    const tu = s.turns || {};
+    if(!tu[me]?.date) t.push({tab:'calendario', txt:'Proponi la data del tuo turno'});
+    s.participants.forEach(u => { if(tu[u]?.date && !tu[u].confirmations?.[me]) t.push({tab:'calendario', txt:`Conferma la data del turno di ${nameOf(s, u)}`}); });
+    others(s, me).forEach(o => { if(tu[o]?.served && !tu[o].votes?.[me]) t.push({tab:'duelli', txt:`Vota il piatto di ${nameOf(s, o)}`}); });
+    if(tu[me]?.date && turnOk(s, me) && !tu[me].served && tu[me].date <= today()) t.push({tab:'duelli', txt:'Segna il tuo piatto come servito'});
+  }
+  return t;
+}
+function scores(s){
+  return s.participants.map(u => {
+    const vs = Object.values(s.turns?.[u]?.votes || {}); const n = vs.length;
+    const avg = k => n ? vs.reduce((a, v) => a + Number(v[k]), 0) / n : null;
+    const g = avg('gusto'), p = avg('pres'), f = avg('fed');
+    return {u, n, g, p, f, tot: n ? (g + p + f) / 3 : null};
+  }).sort((a, b) => (b.tot ?? -1) - (a.tot ?? -1));
+}
+function gcalLink(s, u){
+  const t = s.turns[u], d = s.dishes[u] || {};
+  const st = new Date(t.date + 'T' + (t.time || '20:00')); const en = new Date(st.getTime() + 150*60000);
+  const f = x => `${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
+  const q = new URLSearchParams({action:'TEMPLATE', text:`Duello ai Fornelli: ${nameOf(s, u)} cucina ${d.name || ''}`, dates:`${f(st)}/${f(en)}`, ctz:'Europe/Rome', details:`Sfida «${s.title}». ${t.meal === 'pranzo' ? 'Pranzo' : 'Cena'} con ${s.participants.map(x => nameOf(s, x)).join(', ')}.`, location: t.place || ''});
+  return 'https://calendar.google.com/calendar/render?' + q.toString();
+}
+const inviteLink = s => APP_URL + '?invito=' + encodeURIComponent(s.inviteCode);
+const friendLink = (s, u) => APP_URL + '?piatto=' + encodeURIComponent(s.id) + '&chef=' + encodeURIComponent(u);
+const wa = txt => 'https://wa.me/?text=' + encodeURIComponent(txt);
+
+function compress(file){
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const m = 900, k = Math.min(1, m / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.round(img.width*k); c.height = Math.round(img.height*k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', .72)); };
+    img.onerror = () => rej(new Error('Immagine non leggibile'));
+    img.src = url;
+  });
+}
+
+/* ---------- Premium: Google Play Billing ---------- */
+const PRODUCT_ID = 'premium_sfide';
+const PRICE_FALLBACK = '2,99 €';
+const FREE_CHALLENGES = 1;
+const createdByMe = () => { const me = store.me(); return store.mine().filter(s => s.createdBy === me.id).length; };
+const canCreate = () => store.isPremium() || createdByMe() < FREE_CHALLENGES;
+const Billing = {
+  svc: null, price: null,
+  async service(){
+    if(this.svc) return this.svc;
+    if(!('getDigitalGoodsService' in window)) return null;
+    try{ this.svc = await window.getDigitalGoodsService('https://play.google.com/billing'); }catch(e){ this.svc = null; }
+    return this.svc;
+  },
+  async loadPrice(){
+    const svc = await this.service(); if(!svc) return;
+    try{
+      const [d] = await svc.getDetails([PRODUCT_ID]);
+      if(d?.price) this.price = new Intl.NumberFormat('it-IT', {style:'currency', currency: d.price.currency}).format(Number(d.price.value));
+      render();
+    }catch(e){ console.warn(e); }
+  },
+  async buy(){
+    const svc = await this.service();
+    if(!svc) throw new Error("L'acquisto funziona solo nell'app scaricata da Google Play.");
+    const req = new PaymentRequest([{supportedMethods: 'https://play.google.com/billing', data: {sku: PRODUCT_ID}}]);
+    const res = await req.show();
+    const token = res.details?.purchaseToken || res.details?.token;
+    if(svc.acknowledge){ try{ await svc.acknowledge(token, 'onetime'); }catch(e){ console.warn(e); } }
+    await res.complete('success');
+    return {purchaseToken: token || null, store: 'google_play'};
+  },
+  async restore(){
+    const svc = await this.service();
+    if(!svc) throw new Error("Il ripristino funziona solo nell'app scaricata da Google Play.");
+    const list = await svc.listPurchases();
+    const p = list.find(x => x.itemId === PRODUCT_ID);
+    return p ? {purchaseToken: p.purchaseToken, store: 'google_play'} : null;
+  }
+};
+const priceLabel = () => Billing.price || PRICE_FALLBACK;
+
+/* ---------- stato interfaccia ---------- */
+let store;
+const ui = { route:'home', id:null, tab:null, open:{}, flash:null, chef:null, friendOnly:false, busy:false, invite:null };
+function go(route, extra = {}){ Object.assign(ui, {route, open:{}, flash:null}, extra); render(); window.scrollTo(0, 0); }
+function flash(msg){ ui.flash = msg; render(); }
+
+/* ---------- componenti ---------- */
+const logo = `<svg viewBox="0 0 34 34" aria-hidden="true"><g stroke-linecap="round"><line x1="8" y1="27" x2="20" y2="15" stroke="var(--p1)" stroke-width="3.2"/><ellipse cx="23" cy="11.5" rx="4.3" ry="6" transform="rotate(45 23 11.5)" fill="var(--p1)"/><line x1="26" y1="27" x2="14" y2="15" stroke="var(--p2)" stroke-width="3.2"/><ellipse cx="11" cy="11.5" rx="4.3" ry="6" transform="rotate(-45 11 11.5)" fill="var(--p2)"/></g></svg>`;
+const chefTag = (s, u, me) => `<span class="chef"><i class="dot" style="background:${colorOf(s, u)}"></i>${esc(nameOf(s, u))}${u === me ? ' <span class="muted small">(tu)</span>' : ''}</span>`;
+const stageLabel = st => STAGES.find(x => x[0] === st)?.[1];
+
+function topBar(){
+  const me = store.me();
+  let right = '';
+  if(store.mode === 'demo'){
+    right = `<div class="who"><span class="label" style="font-size:10px">Stai giocando come</span>
+      <select id="who" aria-label="Cambia utente di prova">${store.users().map(u => `<option value="${esc(u.id)}" ${u.id === me.id ? 'selected' : ''}>${esc(u.name)}</option>`).join('')}</select></div>`;
+  } else if(me){
+    right = `<div class="who"><b style="font-size:14px">${esc(me.name)}</b><button class="btn-link muted small" data-act="logout" style="background:none;border:0;padding:0;cursor:pointer;color:var(--muted)">Esci</button></div>`;
+  }
+  return `<header class="top"><button class="brand" data-act="home" aria-label="Torna alle sfide">${logo}<div><b>Duello</b><span>ai Fornelli</span></div></button>${right}</header>`;
+}
+
+function viewHome(){
+  const me = store.me(); const list = store.mine();
+  const cards = list.map(s => {
+    const st = stageOf(s), td = todos(s, me.id);
+    return `<button class="card card-link stack" data-act="open" data-id="${esc(s.id)}">
+      <div class="row between"><h3>${esc(s.title)}</h3>${td.length ? `<span class="pill warn">Tocca a te</span>` : `<span class="pill ${st === 'conclusa' ? 'ok' : ''}">${stageLabel(st)}</span>`}</div>
+      <div class="row">${s.participants.map((u, i) => (i ? '<span class="vs">VS</span>' : '') + chefTag(s, u, me.id)).join('')}</div>
+      ${td.length ? `<p class="small" style="color:var(--warn);font-weight:600">${esc(td[0].txt)}${td.length > 1 ? ` e altre ${td.length - 1} cose` : ''}</p>` : ''}
+    </button>`;
+  }).join('');
+  return `
+  ${store.mode === 'demo' ? `<div class="demo-bar"><b>Modalità prova.</b> I dati restano su questo telefono. Usa il menu in alto per fare la parte dell'avversario.</div>` : ''}
+  <section class="hero stack"><h1>Le tue sfide</h1><p>Proponete i piatti, fissate la cena, assaggiate e votate.</p></section>
+  <div class="stack" style="margin-top:16px">
+    <button class="btn btn-primary btn-block" data-act="new">Nuova sfida</button>
+    <p class="small muted" style="text-align:center">${store.isPremium() ? 'Premium attivo: sfide illimitate' : (createdByMe() < FREE_CHALLENGES ? 'La prima sfida che crei è gratis' : `Per creare altre sfide: Premium a ${esc(priceLabel())} una tantum`)}</p>
+    <form class="row" data-form="code" style="flex-wrap:nowrap">
+      <input type="text" id="code" name="code" placeholder="Codice invito, es. DF-R7K2M" autocomplete="off" style="text-transform:uppercase">
+      <button class="btn btn-ghost" type="submit">Entra</button>
+    </form>
+    ${ui.flash ? `<div class="flash" role="status">${esc(ui.flash)}</div>` : ''}
+  </div>
+  <div class="stack" style="margin-top:22px">
+    <div class="label">In corso e concluse</div>
+    ${cards || `<div class="empty">Nessuna sfida ancora. Creane una e invita un amico.</div>`}
+  </div>
+  ${store.mode === 'demo' ? `<details class="panel" style="margin-top:26px"><summary>Strumenti della prova</summary>
+    <div class="stack" style="margin-top:12px">
+      <form class="row" data-form="adduser" style="flex-wrap:nowrap"><input type="text" id="newuser" name="name" placeholder="Nome nuovo sfidante" required><button class="btn btn-ghost" type="submit">Aggiungi</button></form>
+      <p class="small muted">Aggiungi un utente finto per provare l'invito con il codice. Ogni utente nuovo ha una sfida gratis.</p>
+      <button class="btn btn-warn btn-sm" data-act="reset" type="button">${ui.confirmReset ? 'Tocca ancora per cancellare tutto' : 'Ripristina i dati di esempio'}</button>
+    </div></details>` : ''}`;
+}
+
+function viewPremium(){
+  const demo = store.mode === 'demo';
+  const perks = [
+    ['Sfide illimitate', 'Crea tutte le sfide che vuoi, quando vuoi.'],
+    ['Gli amici giocano gratis', 'Chi inviti entra nelle tue sfide senza pagare nulla.'],
+    ['Per sempre', 'Paghi una volta sola, nessun abbonamento.']
+  ];
+  return `<div class="stack-lg">
+    <button class="btn btn-ghost btn-sm" data-act="home" style="align-self:flex-start">← Indietro</button>
+    <div class="stack">
+      <div class="label">Duello ai Fornelli Premium</div>
+      <h1>${store.isPremium() ? 'Premium attivo' : 'Hai usato la tua sfida gratuita'}</h1>
+      <p class="muted">${store.isPremium() ? 'Grazie! Puoi creare tutte le sfide che vuoi.' : 'Per creare altre sfide sblocca Premium. Chi viene invitato gioca sempre gratis.'}</p>
+    </div>
+    <div class="card stack">
+      ${perks.map(([t, d]) => `<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><span class="pill ok" style="margin-top:2px">✓</span><div><b>${t}</b><p class="small muted">${d}</p></div></div>`).join('')}
+    </div>
+    ${store.isPremium() ? `<button class="btn btn-primary btn-block" data-act="new">Crea una sfida</button>` : `
+    <div class="stack" style="align-items:center;gap:4px"><span class="score" style="font-size:40px">${esc(priceLabel())}</span><span class="small muted">una volta sola</span></div>
+    ${ui.flash ? `<div class="flash" role="status">${esc(ui.flash)}</div>` : ''}
+    ${demo && ui.fakePay ? `<div class="card stack" style="border-color:var(--accent)">
+        <div class="label">Simulazione Google Play</div>
+        <p>Nell'app vera qui si apre la finestra di pagamento di Google Play. Nella prova non paghi nulla.</p>
+        <div class="row"><button class="btn btn-primary" data-act="fake-pay">Simula pagamento riuscito</button><button class="btn btn-ghost" data-act="fake-cancel">Annulla</button></div>
+      </div>` : `<button class="btn btn-primary btn-block" data-act="buy" ${ui.busy ? 'disabled' : ''}>${ui.busy ? 'Attendi…' : 'Sblocca per ' + esc(priceLabel())}</button>`}
+    <button class="btn btn-ghost btn-block" data-act="restore">Ho già acquistato: ripristina</button>
+    <p class="small muted" style="text-align:center">Pagamento gestito da Google Play. Nessun abbonamento.</p>`}
+  </div>`;
+}
+
+function viewNew(){
+  return `<div class="stack-lg">
+    <button class="btn btn-ghost btn-sm" data-act="home" style="align-self:flex-start">← Indietro</button>
+    <h1>Nuova sfida</h1>
+    <form class="stack" data-form="new">
+      <label class="f">Nome della sfida<input type="text" id="n-title" name="title" required maxlength="60" placeholder="Es. Sfida dei risotti"></label>
+      <label class="f">Tema o regola (facoltativo)<input type="text" id="n-theme" name="theme" maxlength="120" placeholder="Es. solo ingredienti di stagione, budget 20 €"></label>
+      <button class="btn btn-primary btn-block" type="submit">Crea e invita</button>
+    </form>
+  </div>`;
+}
+
+function viewInvite(){
+  const s = ui.invite; const me = store.me();
+  if(!s) return `<div class="empty">Invito non trovato.</div>`;
+  const already = s.participants.includes(me.id);
+  return `<div class="stack-lg">
+    <div class="label">Invito a un duello</div>
+    <h1>${esc(nameOf(s, s.createdBy))} ti sfida: «${esc(s.title)}»</h1>
+    ${s.theme ? `<p class="muted">Tema: ${esc(s.theme)}</p>` : ''}
+    <div class="row">${s.participants.map((u, i) => (i ? '<span class="vs">VS</span>' : '') + chefTag(s, u, me.id)).join('')}</div>
+    <p>Entrando proporrai il tuo piatto e approverai quello degli altri. La sfida parte solo quando tutti i piatti sono approvati.</p>
+    ${already ? `<button class="btn btn-primary btn-block" data-act="open" data-id="${esc(s.id)}">Sei già dentro: apri la sfida</button>` :
+      `<button class="btn btn-primary btn-block" data-act="join">Accetto la sfida</button>`}
+    <button class="btn btn-ghost btn-block" data-act="home">Non ora</button>
+  </div>`;
+}
+
+function viewDetail(){
+  const s = store.get(ui.id); const me = store.me().id;
+  if(!s) return `<div class="empty">Sfida non trovata.</div>`;
+  const st = stageOf(s), si = STAGES.findIndex(x => x[0] === st);
+  const td = todos(s, me);
+  const tabs = [['sfidanti','Sfidanti'],['piatti','Piatti'],['calendario','Date'],['duelli','Duelli'],['classifica','Voti']];
+  const defTab = {invito:'sfidanti', piatti:'piatti', calendario:'calendario', duelli:'duelli', conclusa:'classifica'}[st];
+  const tab = ui.tab || defTab;
+  const hasTodo = t => td.some(x => x.tab === t);
+  const body = {sfidanti: tabSfidanti, piatti: tabPiatti, calendario: tabCalendario, duelli: tabDuelli, classifica: tabClassifica}[tab](s, me);
+  return `<div class="stack">
+    <button class="btn btn-ghost btn-sm" data-act="home" style="align-self:flex-start">← Le tue sfide</button>
+    <h1>${esc(s.title)}</h1>
+    ${s.theme ? `<p class="muted">${esc(s.theme)}</p>` : ''}
+    <div class="row">${s.participants.map((u, i) => (i ? '<span class="vs">VS</span>' : '') + chefTag(s, u, me)).join('')}</div>
+  </div>
+  <div class="steps" aria-label="Avanzamento">${STAGES.map((x, i) => `<div class="step ${i < si ? 'done' : i === si ? 'now' : ''}"><i></i>${x[1]}</div>`).join('')}</div>
+  ${td.length ? `<div class="flash" style="background:var(--warn-soft);color:var(--warn)">${td.map(x => esc(x.txt)).join(' · ')}</div>` : ''}
+  ${ui.flash ? `<div class="flash" role="status" style="margin-top:8px">${esc(ui.flash)}</div>` : ''}
+  <nav class="tabs" role="tablist">${tabs.map(([k, l]) => `<button class="tab ${k === tab ? 'on' : ''}" role="tab" aria-selected="${k === tab}" data-act="tab" data-tab="${k}">${l}${hasTodo(k) && k !== tab ? '<span class="badge"></span>' : ''}</button>`).join('')}</nav>
+  <div class="stack-lg">${body}</div>`;
+}
+
+function tabSfidanti(s, me){
+  const msg = `Ti sfido a Duello ai Fornelli! Sfida «${s.title}». Apri il link per entrare: ${inviteLink(s)} (codice ${s.inviteCode})`;
+  return `
+  <div class="card stack">
+    <div class="label">Invita uno sfidante</div>
+    <div class="code">${esc(s.inviteCode)}</div>
+    <p class="small muted">Chiunque sia già nella sfida può invitare altri. Chi riceve il link entra con un tocco, oppure scrive il codice nella schermata iniziale.</p>
+    <div class="row">
+      <a class="btn btn-primary" href="${esc(wa(msg))}" target="_blank" rel="noopener">Invia su WhatsApp</a>
+      <button class="btn btn-ghost" data-act="share" data-text="${esc(msg)}" ${navigator.share && store.mode !== 'demo' ? '' : 'hidden'}>Altre app…</button>
+      <button class="btn btn-ghost" data-act="copy" data-text="${esc(msg)}">Copia messaggio</button>
+    </div>
+    ${store.mode === 'demo' ? `<p class="small" style="color:var(--warn)">Nella prova: aggiungi o scegli un altro utente dal menu in alto, poi inserisci il codice <b>${esc(s.inviteCode)}</b> nella schermata iniziale.</p>` : ''}
+  </div>
+  <div class="stack">
+    <div class="label">Sfidanti (${s.participants.length})</div>
+    ${s.participants.map(u => `<div class="card row between">${chefTag(s, u, me)}<span class="pill ${dishOk(s, u) ? 'ok' : ''}">${s.dishes?.[u]?.name ? (dishOk(s, u) ? 'Piatto approvato' : 'Piatto in attesa') : 'Nessun piatto'}</span></div>`).join('')}
+  </div>`;
+}
+
+function approvalChips(s, u){
+  const d = s.dishes?.[u] || {};
+  return others(s, u).map(o => {
+    if(d.approvals?.[o]) return `<span class="pill ok">✓ ${esc(nameOf(s, o))}</span>`;
+    if(d.changes?.[o]) return `<span class="pill warn">${esc(nameOf(s, o))} chiede modifica</span>`;
+    return `<span class="pill">${esc(nameOf(s, o))} in attesa</span>`;
+  }).join('');
+}
+function dishForm(s, u){
+  const d = s.dishes?.[u] || {};
+  return `<form class="stack" data-form="dish" data-u="${esc(u)}">
+    <label class="f">Nome del piatto<input type="text" id="d-name-${esc(u)}" name="name" required maxlength="80" value="${esc(d.name)}" placeholder="Es. Tagliatelle al ragù bianco"></label>
+    <label class="f">Descrizione breve<textarea id="d-desc-${esc(u)}" name="desc" maxlength="300" placeholder="Cosa c'è nel piatto, come lo servi">${esc(d.desc)}</textarea></label>
+    <p class="small muted">${d.name ? 'Se modifichi il piatto, gli altri dovranno approvarlo di nuovo.' : 'Gli altri sfidanti dovranno approvarlo.'}</p>
+    <div class="row"><button class="btn btn-primary" type="submit">${d.name ? 'Salva modifiche' : 'Proponi il piatto'}</button>${d.name ? `<button class="btn btn-ghost" type="button" data-act="toggle" data-key="dish-${esc(u)}">Annulla</button>` : ''}</div>
+  </form>`;
+}
+function recipeBlock(s, u, me){
+  const r = s.dishes?.[u]?.recipe; const key = 'rec-' + u;
+  if(ui.open[key]) return `<form class="stack sub" data-form="recipe" data-u="${esc(u)}">
+      <div class="label">Ricetta guida condivisa</div>
+      <label class="f">Ingredienti base (uno per riga)<textarea id="r-ing-${esc(u)}" name="ingredients">${esc(r?.ingredients)}</textarea></label>
+      <label class="f">Procedimento essenziale<textarea id="r-steps-${esc(u)}" name="steps">${esc(r?.steps)}</textarea></label>
+      <label class="f">Libertà dello chef<textarea id="r-free-${esc(u)}" name="freedom" style="min-height:60px" placeholder="Cosa lo chef può cambiare a piacere">${esc(r?.freedom)}</textarea></label>
+      <div class="row"><button class="btn btn-primary btn-sm" type="submit">Salva ricetta</button><button class="btn btn-ghost btn-sm" type="button" data-act="toggle" data-key="${key}">Annulla</button></div>
+    </form>`;
+  if(!r) return `<div class="sub row between"><span class="small muted">Nessuna ricetta guida ancora.</span><button class="btn btn-soft btn-sm" data-act="toggle" data-key="${key}">Scrivi la ricetta</button></div>`;
+  return `<div class="sub stack">
+    <div class="row between"><div class="label">Ricetta guida</div><button class="btn btn-soft btn-sm" data-act="toggle" data-key="${key}">Modifica</button></div>
+    <div class="recipe-grid">
+      ${r.ingredients ? `<div><div class="small" style="font-weight:700">Ingredienti</div><div class="recipe">${esc(r.ingredients)}</div></div>` : ''}
+      ${r.steps ? `<div><div class="small" style="font-weight:700">Procedimento</div><div class="recipe">${esc(r.steps)}</div></div>` : ''}
+      ${r.freedom ? `<div><div class="small" style="font-weight:700">Libertà dello chef</div><div class="recipe">${esc(r.freedom)}</div></div>` : ''}
+    </div>
+    <p class="small muted">Ultima modifica: ${esc(nameOf(s, r.by))}. È una linea guida: lo chef può interpretarla.</p>
+  </div>`;
+}
+function tabPiatti(s, me){
+  if(s.participants.length < 2) return `<div class="empty">Invita almeno un avversario per iniziare a scegliere i piatti.</div>`;
+  const order = [me, ...others(s, me)];
+  return `<p class="small muted">Ognuno propone il proprio piatto. La sfida parte quando ogni piatto è approvato da tutti gli altri.</p>` + order.map(u => {
+    const d = s.dishes?.[u]; const mine = u === me;
+    const editing = ui.open['dish-' + u];
+    let inner;
+    if(!d?.name){
+      inner = mine ? dishForm(s, u) : `<p class="muted">${esc(nameOf(s, u))} non ha ancora proposto il piatto.</p>`;
+    } else if(mine && editing){
+      inner = dishForm(s, u);
+    } else {
+      const changes = Object.entries(d.changes || {});
+      let actions = '';
+      if(mine){
+        actions = `<button class="btn btn-ghost btn-sm" data-act="toggle" data-key="dish-${esc(u)}">Modifica piatto</button>`;
+      } else if(!d.approvals?.[me]){
+        actions = ui.open['chg-' + u]
+          ? `<form class="stack" data-form="change" data-u="${esc(u)}" style="width:100%"><label class="f">Cosa vorresti cambiare?<textarea id="chg-${esc(u)}" name="txt" required placeholder="Es. niente panna, oppure un secondo invece di un primo"></textarea></label><div class="row"><button class="btn btn-warn btn-sm" type="submit">Invia richiesta</button><button class="btn btn-ghost btn-sm" type="button" data-act="toggle" data-key="chg-${esc(u)}">Annulla</button></div></form>`
+          : `<button class="btn btn-primary btn-sm" data-act="approve" data-u="${esc(u)}">Approva piatto</button><button class="btn btn-ghost btn-sm" data-act="toggle" data-key="chg-${esc(u)}">Chiedi modifica</button>`;
+      } else {
+        actions = `<span class="small muted">Hai approvato questo piatto.</span>`;
+      }
+      inner = `<div class="dish-name">${esc(d.name)}</div>
+        ${d.desc ? `<p>${esc(d.desc)}</p>` : ''}
+        <div class="approvals">${approvalChips(s, u)}</div>
+        ${changes.map(([o, txt]) => `<div class="sub small"><b>${esc(nameOf(s, o))}:</b> ${esc(txt)}</div>`).join('')}
+        <div class="row">${actions}</div>
+        ${recipeBlock(s, u, me)}`;
+    }
+    return `<section class="card stack"><div class="row between">${chefTag(s, u, me)}${d?.name ? `<span class="pill ${dishOk(s, u) ? 'ok' : ''}">${dishOk(s, u) ? 'Approvato' : 'In attesa'}</span>` : ''}</div>${inner}</section>`;
+  }).join('');
+}
+
+function turnForm(s, u, me){
+  const t = s.turns?.[u] || {};
+  return `<form class="stack" data-form="turn" data-u="${esc(u)}">
+    <div class="grid2">
+      <label class="f">Data<input type="date" id="t-date-${esc(u)}" name="date" required min="${today()}" value="${esc(t.date || '')}"></label>
+      <label class="f">Ora<input type="time" id="t-time-${esc(u)}" name="time" required value="${esc(t.time || '20:00')}"></label>
+    </div>
+    <div class="grid2">
+      <label class="f">Pasto<select class="in" id="t-meal-${esc(u)}" name="meal"><option value="cena" ${t.meal !== 'pranzo' ? 'selected' : ''}>Cena</option><option value="pranzo" ${t.meal === 'pranzo' ? 'selected' : ''}>Pranzo</option></select></label>
+      <label class="f">Dove<input type="text" id="t-place-${esc(u)}" name="place" value="${esc(t.place || ('Casa di ' + nameOf(s, u)))}"></label>
+    </div>
+    <div class="row"><button class="btn btn-primary btn-sm" type="submit">${t.date ? 'Proponi questa data' : 'Proponi data'}</button>${t.date ? `<button class="btn btn-ghost btn-sm" type="button" data-act="toggle" data-key="turn-${esc(u)}">Annulla</button>` : ''}</div>
+  </form>`;
+}
+function tabCalendario(s, me){
+  if(!s.participants.every(u => dishOk(s, u)) || s.participants.length < 2) return `<div class="empty">Le date si fissano quando tutti i piatti sono approvati.</div>`;
+  const order = s.participants.slice().sort((a, b) => (s.turns?.[a]?.date || '9999').localeCompare(s.turns?.[b]?.date || '9999'));
+  return `<p class="small muted">Ogni sfidante ha il suo turno: cucina il proprio piatto e gli altri assaggiano. Chi propone una data la conferma in automatico; gli altri devono confermarla.</p>` + order.map(u => {
+    const t = s.turns?.[u]; const d = s.dishes[u];
+    let inner;
+    if(!t?.date || ui.open['turn-' + u]){
+      inner = (u === me || t?.date) ? turnForm(s, u, me) : `<p class="muted">${esc(nameOf(s, u))} deve ancora proporre una data.</p><button class="btn btn-ghost btn-sm" data-act="toggle" data-key="turn-${esc(u)}" style="align-self:flex-start">Proponi tu una data</button>`;
+    } else {
+      const conf = s.participants.map(o => `<span class="pill ${t.confirmations?.[o] ? 'ok' : ''}">${t.confirmations?.[o] ? '✓' : '…'} ${esc(nameOf(s, o))}</span>`).join('');
+      inner = `<div class="when">${esc(fmtDate(t.date))}, ${t.meal === 'pranzo' ? 'pranzo' : 'cena'} alle ${esc(t.time)}</div>
+        ${t.place ? `<p class="muted">${esc(t.place)}</p>` : ''}
+        <div class="approvals">${conf}</div>
+        <div class="row">
+          ${!t.confirmations?.[me] ? `<button class="btn btn-primary btn-sm" data-act="confirm" data-u="${esc(u)}">Confermo</button>` : ''}
+          ${turnOk(s, u) ? `<a class="btn btn-soft btn-sm" href="${esc(gcalLink(s, u))}" target="_blank" rel="noopener">Aggiungi a Google Calendar</a>` : ''}
+          ${!t.served ? `<button class="btn btn-ghost btn-sm" data-act="toggle" data-key="turn-${esc(u)}">Cambia data</button>` : ''}
+        </div>`;
+    }
+    return `<section class="card stack"><div class="row between"><span>Turno di ${chefTag(s, u, me)}</span>${t?.date ? `<span class="pill ${turnOk(s, u) ? 'ok' : 'warn'}">${turnOk(s, u) ? 'Confermato' : 'Da confermare'}</span>` : ''}</div><p class="small muted">Cucina: <b style="color:var(--ink)">${esc(d.name)}</b></p>${inner}</section>`;
+  }).join('');
+}
+
+function voteForm(s, u){
+  const crit = [['gusto','Gusto'],['pres','Presentazione'],['fed','Fedeltà alla ricetta']];
+  return `<form class="stack sub" data-form="vote" data-u="${esc(u)}">
+    <div class="label">Il tuo voto</div>
+    ${crit.map(([k, l]) => `<div class="range"><label for="v-${k}-${esc(u)}" class="small" style="font-weight:600">${l}</label><span></span><input type="range" min="1" max="10" value="7" id="v-${k}-${esc(u)}" name="${k}" data-out="o-${k}-${esc(u)}"><output id="o-${k}-${esc(u)}">7</output></div>`).join('')}
+    <label class="f">Commento (facoltativo)<textarea id="v-note-${esc(u)}" name="note" style="min-height:60px" placeholder="Cosa ti è piaciuto, cosa cambieresti"></textarea></label>
+    <button class="btn btn-primary" type="submit">Invia il voto</button>
+    <p class="small muted">Il voto non si può cambiare dopo l'invio.</p>
+  </form>`;
+}
+function tabDuelli(s, me){
+  if(s.participants.length < 2 || !s.participants.every(u => turnOk(s, u))) {
+    const any = s.participants.some(u => s.turns?.[u]?.served);
+    if(!any) return `<div class="empty">I duelli iniziano quando tutte le date sono confermate.</div>`;
+  }
+  const order = s.participants.slice().sort((a, b) => (s.turns?.[a]?.date || '9999').localeCompare(s.turns?.[b]?.date || '9999'));
+  return order.map(u => {
+    const t = s.turns?.[u] || {}; const d = s.dishes?.[u] || {}; const mine = u === me;
+    const ops = store.opinions(s.id, u);
+    const avgStars = ops.length ? ops.reduce((a, o) => a + o.stars, 0) / ops.length : null;
+    const photo = t.photo ? `<img class="photo" src="${t.photo}" alt="Foto del piatto ${esc(d.name)}">` : `<div class="nophoto">${mine ? 'Nessuna foto. Aggiungila per farla vedere agli amici.' : 'Nessuna foto del piatto'}</div>`;
+    const photoBtn = mine ? `<label class="btn btn-ghost btn-sm file">${t.photo ? 'Cambia foto' : 'Aggiungi foto'}<input type="file" accept="image/*" capture="environment" data-photo="${esc(u)}" aria-label="Foto del piatto"></label>` : '';
+    let main = '';
+    if(!t.served){
+      main = mine
+        ? `<p class="small muted">Dopo il pranzo o la cena, segna il piatto come servito: gli altri potranno votarlo.</p><div class="row"><button class="btn btn-primary btn-sm" data-act="serve" data-u="${esc(u)}">Piatto servito</button>${photoBtn}</div>`
+        : `<p class="small muted">Potrai votare quando ${esc(nameOf(s, u))} avrà servito il piatto.</p>`;
+    } else {
+      const myVote = t.votes?.[me];
+      const votes = Object.entries(t.votes || {});
+      main = `${mine ? `<div class="row">${photoBtn}</div>` : ''}
+        ${!mine && !myVote ? voteForm(s, u) : ''}
+        ${votes.length ? `<div class="stack">${votes.map(([o, v]) => `<div class="sub small"><div class="row between"><b>${esc(nameOf(s, o))}</b><span style="font-family:var(--mono)">G ${v.gusto} · P ${v.pres} · R ${v.fed}</span></div>${v.note ? `<p style="margin-top:4px">${esc(v.note)}</p>` : ''}</div>`).join('')}</div>` : (mine ? '<p class="small muted">In attesa dei voti.</p>' : '')}`;
+    }
+    const msg = `Ho cucinato "${d.name}" per Duello ai Fornelli. Che ne pensi? Dai il tuo voto qui: ${friendLink(s, u)}`;
+    return `<section class="card stack">
+      <div class="row between"><span>${chefTag(s, u, me)}</span><span class="pill ${t.served ? 'ok' : ''}">${t.served ? 'Servito' : (t.date ? fmtDate(t.date) : 'Da fissare')}</span></div>
+      <div class="dish-name">${esc(d.name)}</div>
+      ${photo}
+      ${main}
+      <div class="sub stack">
+        <div class="row between"><div class="label">Parere degli amici</div>${avgStars != null ? `<span class="stars-s">${'★'.repeat(Math.round(avgStars))}</span>` : ''}</div>
+        ${ops.length ? `<p class="small muted">${ops.length} ${ops.length === 1 ? 'parere' : 'pareri'}, media ${fmtNum(avgStars)} su 5. Non conta per la classifica.</p>` : `<p class="small muted">Condividi la foto: gli amici votano con le stelle senza registrarsi.</p>`}
+        <div class="row">
+          ${mine && t.photo ? `<a class="btn btn-soft btn-sm" href="${esc(wa(msg))}" target="_blank" rel="noopener">Chiedi su WhatsApp</a>` : ''}
+          <button class="btn btn-ghost btn-sm" data-act="friends" data-u="${esc(u)}">Apri la pagina amici</button>
+        </div>
+      </div>
+    </section>`;
+  }).join('');
+}
+
+function tabClassifica(s, me){
+  const sc = scores(s); const st = stageOf(s);
+  const done = st === 'conclusa';
+  const top = sc[0]; const tie = sc.length > 1 && sc[1].tot != null && Math.abs(sc[1].tot - top.tot) < 0.001;
+  const banner = done ? (tie
+      ? `<div class="winner stack"><div class="label">Verdetto</div><h2>Pareggio!</h2><p>Serve una rivincita.</p></div>`
+      : `<div class="winner stack"><div class="label">Vince la sfida</div><h2>${esc(nameOf(s, top.u))} con ${fmtNum(top.tot)}</h2><p>${esc(s.dishes[top.u].name)}</p></div>`)
+    : `<div class="empty">Il verdetto arriva quando tutti i piatti sono stati votati. Intanto ecco i parziali.</div>`;
+  const bar = (v, c) => `<div class="bar"><i style="width:${v == null ? 0 : v*10}%;background:${c}"></i></div>`;
+  return banner + sc.map((r, i) => {
+    const c = colorOf(s, r.u);
+    const ops = store.opinions(s.id, r.u); const fa = ops.length ? ops.reduce((a, o) => a + o.stars, 0) / ops.length : null;
+    return `<section class="card stack">
+      <div class="row between"><span class="row"><span class="label">${i + 1}°</span>${chefTag(s, r.u, me)}</span><span class="score">${fmtNum(r.tot)}</span></div>
+      <p class="small muted">${esc(s.dishes?.[r.u]?.name || '')} · ${r.n} ${r.n === 1 ? 'voto' : 'voti'} degli sfidanti</p>
+      <div class="stack" style="gap:6px">
+        <div class="crit"><span>Gusto</span>${bar(r.g, c)}<span>${fmtNum(r.g)}</span></div>
+        <div class="crit"><span>Presentazione</span>${bar(r.p, c)}<span>${fmtNum(r.p)}</span></div>
+        <div class="crit"><span>Ricetta</span>${bar(r.f, c)}<span>${fmtNum(r.f)}</span></div>
+      </div>
+      ${fa != null ? `<p class="small">Amici: <span class="stars-s">${'★'.repeat(Math.round(fa))}</span> <span class="muted">${fmtNum(fa)} su 5 (${ops.length})</span></p>` : ''}
+    </section>`;
+  }).join('');
+}
+
+function viewFriends(){
+  const s = store.get(ui.id); const u = ui.chef;
+  if(!s) return `<div class="empty">Caricamento del piatto…</div>`;
+  const t = s.turns?.[u] || {}; const d = s.dishes?.[u] || {};
+  const ops = store.opinions(s.id, u);
+  const sent = ui.friendSent;
+  const stars = ui.stars || 0;
+  return `<div class="stack-lg">
+    ${ui.friendOnly ? '' : `<div class="demo-bar">Questa è la pagina che vedono gli amici quando aprono il link. Non serve registrarsi.</div><button class="btn btn-ghost btn-sm" data-act="back-detail" style="align-self:flex-start">← Torna alla sfida</button>`}
+    <div class="stack">
+      <div class="label">Duello ai Fornelli · ${esc(s.title)}</div>
+      <h1>Il piatto di ${esc(nameOf(s, u))}</h1>
+      <p class="dish-name" style="font-size:18px">${esc(d.name)}</p>
+      ${d.desc ? `<p class="muted">${esc(d.desc)}</p>` : ''}
+    </div>
+    ${t.photo ? `<img class="photo" src="${t.photo}" alt="Foto del piatto ${esc(d.name)}">` : `<div class="nophoto">Lo chef non ha ancora caricato la foto</div>`}
+    ${sent ? `<div class="flash">Grazie! Il tuo parere è arrivato a ${esc(nameOf(s, u))}.</div>` : `
+    <form class="card stack" data-form="opinion">
+      <h3>Che voto dai a questo piatto?</h3>
+      <div class="stars" role="radiogroup" aria-label="Stelle">${[1,2,3,4,5].map(n => `<input type="radio" name="stars" id="st-${n}" value="${n}" ${stars === n ? 'checked' : ''}><label for="st-${n}" class="${n <= stars ? 'lit' : ''}" aria-label="${n} stelle">★</label>`).join('')}</div>
+      <label class="f">Il tuo nome<input type="text" id="op-name" name="name" required maxlength="40" placeholder="Es. Laura"></label>
+      <label class="f">Commento (facoltativo)<textarea id="op-comment" name="comment" maxlength="280" style="min-height:64px"></textarea></label>
+      <button class="btn btn-primary" type="submit">Invia il tuo parere</button>
+    </form>`}
+    <div class="stack">
+      <div class="label">Pareri (${ops.length})</div>
+      ${ops.length ? ops.map(o => `<div class="opinion"><div class="row between"><b>${esc(o.name)}</b><span class="stars-s">${'★'.repeat(o.stars)}${'☆'.repeat(5 - o.stars)}</span></div>${o.comment ? `<p class="small">${esc(o.comment)}</p>` : ''}</div>`).join('') : `<p class="muted small">Nessun parere ancora. Sii il primo.</p>`}
+    </div>
+  </div>`;
+}
+
+function viewLogin(){
+  return `<div class="stack-lg" style="padding-top:24px">
+    <div style="width:72px">${logo}</div>
+    <h1 style="font-size:34px">Duello ai Fornelli</h1>
+    <p class="muted" style="font-size:17px">Sfida gli amici ai fornelli. Scegliete i piatti, fissate la cena, assaggiate e votate.</p>
+    ${ui.pendingCode ? `<div class="flash">Hai ricevuto un invito a un duello. Accedi per entrare.</div>` : ''}
+    <button class="btn btn-primary btn-block" data-act="login">Accedi con Google</button>
+    ${ui.flash ? `<div class="flash" style="background:var(--warn-soft);color:var(--warn)">${esc(ui.flash)}</div>` : ''}
+  </div>`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const app = $('#app'); if(!store){ app.innerHTML = '<p class="muted" style="padding:40px 0">Caricamento…</p>'; return; }
+  const y = window.scrollY;
+  let html;
+  if(ui.route === 'amici' && ui.friendOnly){ html = viewFriends(); app.innerHTML = `<header class="top"><div class="brand">${logo}<div><b>Duello</b><span>ai Fornelli</span></div></div></header>` + html; return; }
+  if(!store.me()) html = viewLogin();
+  else html = ({home: viewHome, new: viewNew, premium: viewPremium, detail: viewDetail, invite: viewInvite, amici: viewFriends})[ui.route]();
+  app.innerHTML = (store.me() ? topBar() : '') + html;
+  window.scrollTo(0, y);
+}
+
+/* ---------- azioni ---------- */
+async function safe(fn){ try{ await fn(); }catch(e){ console.error(e); flash('Operazione non riuscita: ' + (e.message || e)); } }
+
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]'); if(!el) return;
+  const a = el.dataset.act, u = el.dataset.u, s = ui.id ? store.get(ui.id) : null, me = store.me()?.id;
+  if(a !== 'reset') ui.confirmReset = false;
+  safe(async () => {
+    switch(a){
+      case 'home': go('home', {id:null, tab:null}); break;
+      case 'new': canCreate() ? go('new') : go('premium', {fakePay:false}); break;
+      case 'buy':
+        if(store.mode === 'demo'){ ui.fakePay = true; ui.flash = null; render(); break; }
+        ui.busy = true; ui.flash = null; render();
+        try{ const info = await Billing.buy(); await store.setPremium(info); ui.busy = false; go('premium', {flash:null}); flash('Premium sbloccato. Buone sfide!'); }
+        catch(err){ ui.busy = false; flash(err.name === 'AbortError' ? 'Acquisto annullato.' : (err.message || 'Acquisto non riuscito.')); }
+        break;
+      case 'fake-pay': ui.fakePay = false; await store.setPremium({store:'prova'}); flash('Premium sbloccato (simulazione).'); break;
+      case 'fake-cancel': ui.fakePay = false; flash('Acquisto annullato.'); break;
+      case 'restore':
+        if(store.mode === 'demo'){ flash(store.isPremium() ? 'Premium già attivo.' : 'Nella prova non ci sono acquisti da ripristinare.'); break; }
+        { const info = await Billing.restore(); if(info){ await store.setPremium(info); flash('Acquisto ripristinato.'); } else flash('Nessun acquisto trovato su questo account Google Play.'); }
+        break;
+      case 'open': store.watch(el.dataset.id); go('detail', {id: el.dataset.id, tab: null}); break;
+      case 'tab': ui.tab = el.dataset.tab; ui.open = {}; ui.flash = null; render(); break;
+      case 'toggle': ui.open[el.dataset.key] = !ui.open[el.dataset.key]; render(); break;
+      case 'login': await store.login(); break;
+      case 'logout': await store.logout(); go('home'); break;
+      case 'reset': if(ui.confirmReset){ ui.confirmReset = false; store.reset(); go('home', {flash:'Dati di esempio ripristinati.'}); } else { ui.confirmReset = true; render(); } break;
+      case 'copy': {
+        const txt = el.dataset.text;
+        try{ await navigator.clipboard.writeText(txt); flash('Messaggio copiato: incollalo dove vuoi.'); }
+        catch(err){ ui.flash = 'Copia non disponibile qui. Codice: ' + (s?.inviteCode || ''); render(); }
+        break; }
+      case 'share': try{ await navigator.share({text: el.dataset.text}); }catch(err){} break;
+      case 'approve': await store.patch(s.id, {[`dishes.${u}.approvals.${me}`]: true, [`dishes.${u}.changes.${me}`]: DEL}); flash(`Hai approvato il piatto di ${nameOf(s, u)}.`); break;
+      case 'confirm': await store.patch(s.id, {[`turns.${u}.confirmations.${me}`]: true}); flash('Data confermata.'); break;
+      case 'serve': await store.patch(s.id, {[`turns.${u}.served`]: true, [`turns.${u}.servedAt`]: Date.now()}); flash('Piatto servito. Ora gli altri possono votare.'); break;
+      case 'join': await store.join(ui.invite.id); store.watch(ui.invite.id); go('detail', {id: ui.invite.id, tab:'piatti', invite:null}); flash('Sei entrato nella sfida. Proponi il tuo piatto.'); break;
+      case 'friends': go('amici', {chef: u, stars: 0, friendSent: false}); break;
+      case 'back-detail': go('detail', {tab:'duelli'}); break;
+    }
+  });
+});
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if(t.id === 'who'){ store.switchUser(t.value); go('home', {id:null}); return; }
+  if(t.name === 'stars'){ ui.stars = Number(t.value); document.querySelectorAll('.stars label').forEach((l, i) => l.classList.toggle('lit', i < ui.stars)); return; }
+  if(t.dataset.photo){
+    const f = t.files?.[0]; if(!f) return;
+    safe(async () => { ui.flash = 'Sto preparando la foto…'; render(); const data = await compress(f); await store.patch(ui.id, {[`turns.${t.dataset.photo}.photo`]: data}); flash('Foto aggiunta. Ora puoi chiedere il parere agli amici.'); });
+  }
+});
+document.addEventListener('input', e => { const o = e.target.dataset?.out; if(o){ const out = document.getElementById(o); if(out) out.textContent = e.target.value; } });
+
+document.addEventListener('submit', e => {
+  const f = e.target.closest('[data-form]'); if(!f) return; e.preventDefault();
+  const fd = Object.fromEntries(new FormData(f)); const kind = f.dataset.form, u = f.dataset.u;
+  const me = store.me(); const s = ui.id ? store.get(ui.id) : null;
+  safe(async () => {
+    switch(kind){
+      case 'new': {
+        if(!canCreate()){ go('premium'); return; }
+        const id = await store.create({title: fd.title.trim(), theme: (fd.theme || '').trim(), createdBy: me.id, createdAt: Date.now(), inviteCode: newCode(), participants:[me.id], people:{[me.id]:{name: me.name}}, dishes:{}, turns:{}});
+        store.watch(id); go('detail', {id, tab:'sfidanti'}); flash('Sfida creata. Ora invita il tuo avversario.'); break; }
+      case 'code': {
+        const code = (fd.code || '').trim().toUpperCase().replace(/^DF(?!-)/, 'DF-'); if(!code) return;
+        const found = await store.findByCode(code);
+        if(!found){ flash('Nessuna sfida con il codice ' + code + '. Controlla di averlo scritto bene.'); return; }
+        go('invite', {invite: found}); break; }
+      case 'adduser': store.addUser(fd.name.trim()); go('home', {flash:`Ora stai giocando come ${fd.name.trim()}. Inserisci un codice invito per entrare in una sfida.`}); break;
+      case 'dish': {
+        const up = {[`dishes.${u}.name`]: fd.name.trim(), [`dishes.${u}.desc`]: (fd.desc || '').trim(), [`dishes.${u}.approvals`]: {}, [`dishes.${u}.changes`]: {}};
+        await store.patch(s.id, up); ui.open['dish-' + u] = false; flash('Piatto proposto. Gli altri sfidanti devono approvarlo.'); break; }
+      case 'change': await store.patch(s.id, {[`dishes.${u}.changes.${me.id}`]: fd.txt.trim(), [`dishes.${u}.approvals.${me.id}`]: DEL}); ui.open['chg-' + u] = false; flash('Richiesta inviata.'); break;
+      case 'recipe': await store.patch(s.id, {[`dishes.${u}.recipe`]: {ingredients: fd.ingredients.trim(), steps: fd.steps.trim(), freedom: fd.freedom.trim(), by: me.id}}); ui.open['rec-' + u] = false; flash('Ricetta guida salvata.'); break;
+      case 'turn': await store.patch(s.id, {[`turns.${u}.date`]: fd.date, [`turns.${u}.time`]: fd.time, [`turns.${u}.meal`]: fd.meal, [`turns.${u}.place`]: fd.place.trim(), [`turns.${u}.proposedBy`]: me.id, [`turns.${u}.confirmations`]: {[me.id]: true}}); ui.open['turn-' + u] = false; flash('Data proposta. Aspetta la conferma degli altri.'); break;
+      case 'vote': await store.patch(s.id, {[`turns.${u}.votes.${me.id}`]: {gusto: +fd.gusto, pres: +fd.pres, fed: +fd.fed, note: (fd.note || '').trim()}}); flash(`Voto inviato a ${nameOf(s, u)}.`); break;
+      case 'opinion': {
+        if(!fd.stars){ ui.flash = null; const h = f.querySelector('h3'); h.textContent = 'Scegli da 1 a 5 stelle'; h.style.color = 'var(--bad)'; return; }
+        await store.addOpinion(ui.id, ui.chef, {name: fd.name.trim(), stars: +fd.stars, comment: (fd.comment || '').trim(), at: Date.now()});
+        ui.friendSent = true; ui.stars = 0; render(); break; }
+    }
+  });
+});
+
+/* ---------- avvio ---------- */
+(async function boot(){
+  render();
+  const q = new URLSearchParams(location.search);
+  const cfg = window.FIREBASE_CONFIG;
+  if(cfg && cfg.apiKey){
+    try{ store = await FireStore(cfg); }
+    catch(e){ console.error(e); store = LocalStore(); ui.flash = 'Connessione al server non riuscita: uso la modalità prova.'; }
+  } else store = LocalStore();
+  store.subscribe(render);
+  Billing.loadPrice();
+  if(q.get('invito')){ ui.pendingCode = q.get('invito').toUpperCase(); SS.set('df_invite', ui.pendingCode); }
+  else ui.pendingCode = SS.get('df_invite');
+  if(q.get('piatto') && q.get('chef')){
+    Object.assign(ui, {route:'amici', id: q.get('piatto'), chef: q.get('chef'), friendOnly: true});
+    if(store.mode === 'online'){ try{ await store.ensureGuest(); }catch(e){} store.watch(ui.id); }
+  }
+  if(q.toString() && history.replaceState) history.replaceState(null, '', location.pathname);
+  const tryInvite = async () => {
+    if(!ui.pendingCode || !store.me()) return;
+    const code = ui.pendingCode; ui.pendingCode = null; SS.set('df_invite', null);
+    const s = await store.findByCode(code).catch(() => null);
+    if(s) go('invite', {invite: s}); else flash('Invito ' + code + ' non trovato.');
+  };
+  store.subscribe(() => { if(ui.pendingCode && store.me()) tryInvite(); });
+  render();
+  tryInvite();
+})();
+</script>
+
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}</script>
+</body>
+</html>
